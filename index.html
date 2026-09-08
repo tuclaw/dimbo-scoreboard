@@ -36,8 +36,15 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 16px 4px;
+      gap: 8px;
+      padding: 12px 12px 4px;
       flex-shrink: 0;
+    }
+
+    .header-left, .header-right {
+      display: flex;
+      gap: 8px;
+      align-items: center;
     }
 
     .icon-btn {
@@ -51,25 +58,33 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
+      flex-shrink: 0;
     }
 
     .icon-btn:active { background: #2c2c2e; }
+    .icon-btn.playing { color: #34c759; }
+    .icon-btn svg {
+      width: 20px; height: 20px;
+      stroke: currentColor; fill: none; stroke-width: 1.75;
+      stroke-linecap: round; stroke-linejoin: round;
+    }
 
-    .sort-btn {
+    .pill {
       border: none;
       background: #1c1c1e;
       color: #fff;
       font-size: 13px;
       font-weight: 600;
-      padding: 10px 14px;
+      padding: 10px 12px;
       border-radius: 20px;
       cursor: pointer;
       letter-spacing: -0.01em;
+      white-space: nowrap;
     }
 
-    .sort-btn:active { background: #2c2c2e; }
-    .sort-btn.on-score { background: #2c2c2e; color: #34c759; }
-    .header-right { display: flex; gap: 8px; align-items: center; }
+    .pill:active { background: #2c2c2e; }
+    .pill.on { background: #2c2c2e; color: #34c759; }
+    .pill.recap { color: #ffcc00; }
 
     .lyrics {
       text-align: center;
@@ -79,13 +94,6 @@
       padding: 4px 16px 0;
       min-height: 1.2em;
       letter-spacing: 0.02em;
-    }
-
-    .icon-btn.playing { color: #34c759; }
-    .icon-btn svg {
-      width: 20px; height: 20px;
-      stroke: currentColor; fill: none; stroke-width: 1.75;
-      stroke-linecap: round; stroke-linejoin: round;
     }
 
     .board {
@@ -138,7 +146,6 @@
       background: #1c1c1e;
       border-radius: 6px;
       overflow: hidden;
-      position: relative;
     }
 
     .bar-fill {
@@ -146,7 +153,6 @@
       height: 100%;
       border-radius: 6px;
       width: 0;
-      min-width: 0;
       transition: width 0.25s ease;
     }
 
@@ -215,7 +221,6 @@
       font-size: 48px;
       font-weight: 700;
       font-variant-numeric: tabular-nums;
-      letter-spacing: -0.02em;
       min-height: 56px;
       margin-bottom: 12px;
     }
@@ -266,11 +271,58 @@
     }
     .dialog-cancel { background: #3a3a3c; color: #fff; }
     .dialog-confirm { background: #ff453a; color: #fff; }
+
+    .recap-sheet {
+      width: 100%;
+      max-width: 440px;
+      max-height: min(88vh, 720px);
+      background: #1c1c1e;
+      border-radius: 20px 20px 0 0;
+      padding: 18px 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .recap-sheet h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffcc00;
+    }
+
+    .recap-body {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      font-size: 14px;
+      line-height: 1.45;
+      color: #eee;
+      white-space: pre-wrap;
+      flex: 1;
+      min-height: 0;
+      padding-right: 4px;
+    }
+
+    .recap-body strong { color: #fff; }
+    .recap-actions { display: flex; gap: 10px; }
+    .recap-actions button {
+      flex: 1;
+      padding: 14px 12px;
+      border-radius: 12px;
+      border: none;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .recap-close { background: #3a3a3c; color: #fff; }
+    .recap-lock { background: #34c759; color: #000; }
   </style>
 </head>
 <body>
   <header class="header">
-    <button class="sort-btn" id="sortBtn" type="button" aria-label="Toggle sort order">High score</button>
+    <div class="header-left">
+      <button class="pill" id="sortBtn" type="button" aria-label="Toggle sort order">High score</button>
+      <button class="pill recap" id="recapBtn" type="button">Recap</button>
+    </div>
     <div class="header-right">
       <button class="icon-btn" id="themeBtn" aria-label="Play theme song" type="button" title="Theme song">
         <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
@@ -282,9 +334,8 @@
   </header>
 
   <div class="lyrics" id="lyrics" hidden></div>
-
   <main class="board" id="board"></main>
-  <div class="hint">Tap a player · type the points</div>
+  <div class="hint" id="hint">Tap a player · type the points</div>
 
   <div class="overlay" id="padOverlay">
     <div class="pad" role="dialog" aria-modal="true">
@@ -294,6 +345,17 @@
       </div>
       <div class="pad-display" id="padDisplay">0</div>
       <div class="pad-grid" id="padGrid"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="recapOverlay">
+    <div class="recap-sheet" role="dialog" aria-modal="true">
+      <h2 id="recapTitle">Round Recap</h2>
+      <div class="recap-body" id="recapBody"></div>
+      <div class="recap-actions">
+        <button class="recap-close" id="recapClose" type="button">Close</button>
+        <button class="recap-lock" id="recapLock" type="button">End round</button>
+      </div>
     </div>
   </div>
 
@@ -310,44 +372,204 @@
 
   <script>
     const STORAGE_KEY = 'flip7_scores_v3';
+    const META_KEY = 'flip7_meta_v1';
 
     const PLAYERS = [
-      { name: 'Bonk (D-LAW)',       color: '#39FF14', score: 70 },
-      { name: 'burgdawg (JAY)',     color: '#FF9500', score: 0  },
-      { name: 'Scooby (BECCA)',     color: '#FF3B30', score: 32 },
-      { name: 'Dimbo (KA)',         color: '#5AC8FA', score: 36 },
-      { name: 'Ding Dong (JBRUH)',  color: '#FFCC00', score: 63 },
-      { name: 'buckle (KISSA)',     color: '#FF2D92', score: 0  },
-      { name: 'shack (CHAY)',       color: '#30D158', score: 36 },
-      { name: 'bean shack (JACOB)', color: '#BF5AF2', score: 0  },
-      { name: 'Big dog (TOBY)',     color: '#FF6482', score: 85 },
-      { name: 'flush (TREY)',       color: '#5856D6', score: 21 },
+      { name: 'Bonk (D-LAW)',       color: '#39FF14', score: 70, short: 'Bonk' },
+      { name: 'burgdawg (JAY)',     color: '#FF9500', score: 0,  short: 'burgdawg' },
+      { name: 'Scooby (BECCA)',     color: '#FF3B30', score: 32, short: 'Scooby' },
+      { name: 'Dimbo (KA)',         color: '#5AC8FA', score: 36, short: 'Dimbo' },
+      { name: 'Ding Dong (JBRUH)',  color: '#FFCC00', score: 63, short: 'Ding Dong' },
+      { name: 'buckle (KISSA)',     color: '#FF2D92', score: 0,  short: 'buckle' },
+      { name: 'shack (CHAY)',       color: '#30D158', score: 36, short: 'shack' },
+      { name: 'bean shack (JACOB)', color: '#BF5AF2', score: 0,  short: 'bean shack' },
+      { name: 'Big dog (TOBY)',     color: '#FF6482', score: 85, short: 'Big dog' },
+      { name: 'flush (TREY)',       color: '#5856D6', score: 21, short: 'flush' },
     ];
 
     const DEFAULT_SCORES = PLAYERS.map(p => p.score);
 
     let scores = [...DEFAULT_SCORES];
+    let baseline = [...DEFAULT_SCORES];
+    let zeroStreaks = PLAYERS.map(() => 0);
+    let roundNumber = 1;
     let selectedIndex = null;
     let padValue = '';
     let sortByScore = false;
 
-    function loadScores() {
+    function loadAll() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return;
-        const data = JSON.parse(raw);
-        if (Array.isArray(data.scores) && data.scores.length === PLAYERS.length) {
-          scores = data.scores.map(n => (typeof n === 'number' && !isNaN(n) ? n : 0));
+        if (raw) {
+          const data = JSON.parse(raw);
+          if (Array.isArray(data.scores) && data.scores.length === PLAYERS.length) {
+            scores = data.scores.map(n => (typeof n === 'number' && !isNaN(n) ? n : 0));
+          }
         }
       } catch (_) {}
+
+      try {
+        const meta = JSON.parse(localStorage.getItem(META_KEY) || 'null');
+        if (meta) {
+          if (Array.isArray(meta.baseline) && meta.baseline.length === PLAYERS.length) {
+            baseline = meta.baseline.map(n => (typeof n === 'number' && !isNaN(n) ? n : 0));
+          } else {
+            baseline = [...scores];
+          }
+          if (Array.isArray(meta.zeroStreaks) && meta.zeroStreaks.length === PLAYERS.length) {
+            zeroStreaks = meta.zeroStreaks.map(n => (typeof n === 'number' ? n : 0));
+          }
+          if (typeof meta.roundNumber === 'number' && meta.roundNumber >= 1) {
+            roundNumber = meta.roundNumber;
+          }
+        } else {
+          baseline = [...scores];
+        }
+      } catch (_) {
+        baseline = [...scores];
+      }
+
+      try { sortByScore = localStorage.getItem('flip7_sort_by_score') === '1'; } catch (_) {}
     }
 
     function saveScores() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ scores }));
     }
 
+    function saveMeta() {
+      localStorage.setItem(META_KEY, JSON.stringify({
+        baseline,
+        zeroStreaks,
+        roundNumber,
+      }));
+    }
+
     function escapeHtml(s) {
-      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function deltas() {
+      return scores.map((s, i) => s - baseline[i]);
+    }
+
+    function shortName(i) {
+      return PLAYERS[i].short;
+    }
+
+    function colored(i, text) {
+      return '<strong style="color:' + PLAYERS[i].color + '">' + escapeHtml(text) + '</strong>';
+    }
+
+    function buildRecap() {
+      const d = deltas();
+      const movers = d
+        .map((delta, i) => ({ i, delta }))
+        .filter(x => x.delta !== 0)
+        .sort((a, b) => b.delta - a.delta);
+
+      const gainers = movers.filter(x => x.delta > 0);
+      const losers = movers.filter(x => x.delta < 0);
+      const zerosThisRound = d.map((delta, i) => ({ i, delta })).filter(x => x.delta === 0);
+      const projectedStreaks = zeroStreaks.map((z, i) => d[i] === 0 ? z + 1 : 0);
+      const maxStreak = Math.max(0, ...projectedStreaks);
+      const streakClub = projectedStreaks
+        .map((z, i) => ({ i, z }))
+        .filter(x => x.z === maxStreak && maxStreak > 0);
+
+      const leaderIdx = scores.reduce((best, s, i) => (s > scores[best] ? i : best), 0);
+      const trailerIdx = scores.reduce((worst, s, i) => (s < scores[worst] ? i : worst), 0);
+      const closestTo200 = scores
+        .map((s, i) => ({ i, left: 200 - s }))
+        .filter(x => x.left > 0)
+        .sort((a, b) => a.left - b.left)[0];
+
+      let out = '';
+      out += '🎙 Flip 7 — Round ' + roundNumber + ' Recap\n\n';
+
+      if (gainers.length === 0 && losers.length === 0) {
+        out += 'Nobody scored anything this round.\nThe cards collectively filed a complaint.\n\n';
+      } else {
+        out += '📈 Biggest movers\n';
+        if (gainers.length) {
+          gainers.slice(0, 4).forEach((g, rank) => {
+            const medals = ['🥇', '🥈', '🥉', '✨'];
+            out += medals[rank] + ' ' + colored(g.i, shortName(g.i)) + '  +' + g.delta + '\n';
+          });
+        } else {
+          out += 'No positive movers. Pure tragedy.\n';
+        }
+        out += '\n';
+      }
+
+      if (losers.length) {
+        out += '📉 Went backwards (how?)\n';
+        losers.forEach(l => {
+          out += '• ' + colored(l.i, shortName(l.i)) + '  ' + l.delta + '\n';
+        });
+        out += '\n';
+      }
+
+      out += '🥚 Zero Club (this round)\n';
+      if (zerosThisRound.length === PLAYERS.length) {
+        out += 'Everyone. Historic. Embarrassing.\n\n';
+      } else if (zerosThisRound.length) {
+        out += zerosThisRound.map(z => colored(z.i, shortName(z.i))).join(', ') + '\n\n';
+      } else {
+        out += 'Empty. Rare. Beautiful.\n\n';
+      }
+
+      out += '💤 Longest loser streak\n';
+      if (maxStreak <= 0) {
+        out += 'No active zero streaks. The drought has ended… for now.\n\n';
+      } else {
+        out += streakClub.map(s => colored(s.i, shortName(s.i))).join(', ');
+        out += ' — ' + maxStreak + ' straight round' + (maxStreak === 1 ? '' : 's') + ' of nothing.\n\n';
+      }
+
+      out += '🏆 Funny awards\n';
+      if (gainers[0]) {
+        out += '• Most violent climb: ' + colored(gainers[0].i, shortName(gainers[0].i)) + ' (+' + gainers[0].delta + ')\n';
+      }
+      out += '• Current throne: ' + colored(leaderIdx, shortName(leaderIdx)) + ' (' + scores[leaderIdx] + ')\n';
+      out += '• Basement dweller: ' + colored(trailerIdx, shortName(trailerIdx)) + ' (' + scores[trailerIdx] + ')\n';
+      if (closestTo200) {
+        out += '• Closest to 200: ' + colored(closestTo200.i, shortName(closestTo200.i)) + ' (' + closestTo200.left + ' to go)\n';
+      }
+      if (gainers[0] && gainers[0].i === leaderIdx) {
+        out += '• Most rude: ' + colored(leaderIdx, shortName(leaderIdx)) + ' padded the lead\n';
+      }
+      const nameAward = PLAYERS.reduce((best, p, i) =>
+        p.short.length > PLAYERS[best].short.length ? i : best, 0);
+      out += '• Best name still: ' + colored(nameAward, shortName(nameAward)) + '\n';
+      out += '• Theme song eligibility: still yes\n\n';
+
+      out += 'Tap End round to lock this recap and start tracking the next one.';
+      return out;
+    }
+
+    function openRecap() {
+      document.getElementById('recapTitle').textContent = 'Round ' + roundNumber + ' Recap';
+      document.getElementById('recapBody').innerHTML = buildRecap();
+      document.getElementById('recapOverlay').classList.add('open');
+    }
+
+    function closeRecap() {
+      document.getElementById('recapOverlay').classList.remove('open');
+    }
+
+    function endRound() {
+      const d = deltas();
+      zeroStreaks = zeroStreaks.map((z, i) => (d[i] === 0 ? z + 1 : 0));
+      baseline = [...scores];
+      roundNumber += 1;
+      saveMeta();
+      closeRecap();
+      updateHint();
+    }
+
+    function updateHint() {
+      document.getElementById('hint').textContent =
+        'Round ' + roundNumber + ' · tap a player · Recap when done';
     }
 
     function openPad(index) {
@@ -384,8 +606,13 @@
 
     function resetScores() {
       scores = [...DEFAULT_SCORES];
+      baseline = [...DEFAULT_SCORES];
+      zeroStreaks = PLAYERS.map(() => 0);
+      roundNumber = 1;
       selectedIndex = null;
       saveScores();
+      saveMeta();
+      updateHint();
       render();
     }
 
@@ -394,7 +621,7 @@
       if (!sortByScore) return idxs;
       return idxs.sort((a, b) => {
         if (scores[b] !== scores[a]) return scores[b] - scores[a];
-        return a - b; // stable tie-break: roster order
+        return a - b;
       });
     }
 
@@ -402,12 +629,10 @@
       const btn = document.getElementById('sortBtn');
       if (sortByScore) {
         btn.textContent = 'Roster order';
-        btn.classList.add('on-score');
-        btn.setAttribute('aria-label', 'Switch to roster order');
+        btn.classList.add('on');
       } else {
         btn.textContent = 'High score';
-        btn.classList.remove('on-score');
-        btn.setAttribute('aria-label', 'Sort by high score');
+        btn.classList.remove('on');
       }
     }
 
@@ -474,42 +699,8 @@
       grid.appendChild(sub);
     }
 
-    document.getElementById('padCancel').addEventListener('pointerup', (e) => {
-      e.preventDefault();
-      closePad();
-    });
-
-    document.getElementById('padOverlay').addEventListener('pointerup', (e) => {
-      if (e.target.id === 'padOverlay') closePad();
-    });
-
-    document.getElementById('settingsBtn').addEventListener('pointerup', (e) => {
-      e.preventDefault();
-      document.getElementById('resetOverlay').classList.add('open');
-    });
-
-    document.getElementById('resetCancel').addEventListener('pointerup', (e) => {
-      e.preventDefault();
-      document.getElementById('resetOverlay').classList.remove('open');
-    });
-
-    document.getElementById('resetConfirm').addEventListener('pointerup', (e) => {
-      e.preventDefault();
-      document.getElementById('resetOverlay').classList.remove('open');
-      resetScores();
-    });
-
-    document.getElementById('sortBtn').addEventListener('pointerup', (e) => {
-      e.preventDefault();
-      sortByScore = !sortByScore;
-      try { localStorage.setItem('flip7_sort_by_score', sortByScore ? '1' : '0'); } catch (_) {}
-      render();
-    });
-
-
     let audioCtx = null;
     let themePlaying = false;
-
     const THEME_LINES = [
       'Flip seven — don’t you bust!',
       'Bonk, Scooby, Dimbo, trust!',
@@ -545,60 +736,92 @@
       themePlaying = true;
       btn.classList.add('playing');
 
-      // Melody in C major-ish, punchy game-show vibe. Notes: C4 D4 E4 G4 A4 C5
       const C4=261.63, D4=293.66, E4=329.63, F4=349.23, G4=392.00, A4=440.00, B4=493.88, C5=523.25, E5=659.25, G5=783.99;
       const t0 = ctx.currentTime + 0.05;
       const beat = 0.22;
-
-      // "Flip se-ven" ascending hook, x2
       const hook = [
         [C4, 1], [E4, 1], [G4, 1], [C5, 1.5],
         [G4, 0.5], [A4, 1], [G4, 1], [E4, 1], [C4, 1.5],
         [D4, 0.5], [E4, 1], [F4, 1], [G4, 1], [A4, 1],
         [B4, 1], [C5, 2],
-        // big finish
         [E5, 1], [C5, 1], [G5, 1], [E5, 1], [C5, 2.5],
       ];
 
       let t = t0;
       hook.forEach(([freq, beats]) => {
         playNote(ctx, freq, t, beats * beat * 0.92, 'square', 0.11);
-        // soft bass octave down
         playNote(ctx, freq / 2, t, beats * beat * 0.9, 'triangle', 0.06);
         t += beats * beat;
       });
 
-      // lyrics karaoke-ish
       lyrics.hidden = false;
       let line = 0;
       lyrics.textContent = THEME_LINES[0];
       const iv = setInterval(() => {
         line += 1;
-        if (line >= THEME_LINES.length) {
-          clearInterval(iv);
-          return;
-        }
+        if (line >= THEME_LINES.length) { clearInterval(iv); return; }
         lyrics.textContent = THEME_LINES[line];
       }, 1400);
 
-      const endMs = (t - t0) * 1000 + 200;
       setTimeout(() => {
         themePlaying = false;
         btn.classList.remove('playing');
         lyrics.hidden = true;
         lyrics.textContent = '';
-      }, endMs);
+      }, (t - t0) * 1000 + 200);
     }
 
+    document.getElementById('padCancel').addEventListener('pointerup', (e) => {
+      e.preventDefault();
+      closePad();
+    });
+    document.getElementById('padOverlay').addEventListener('pointerup', (e) => {
+      if (e.target.id === 'padOverlay') closePad();
+    });
+    document.getElementById('settingsBtn').addEventListener('pointerup', (e) => {
+      e.preventDefault();
+      document.getElementById('resetOverlay').classList.add('open');
+    });
+    document.getElementById('resetCancel').addEventListener('pointerup', (e) => {
+      e.preventDefault();
+      document.getElementById('resetOverlay').classList.remove('open');
+    });
+    document.getElementById('resetConfirm').addEventListener('pointerup', (e) => {
+      e.preventDefault();
+      document.getElementById('resetOverlay').classList.remove('open');
+      resetScores();
+    });
+    document.getElementById('sortBtn').addEventListener('pointerup', (e) => {
+      e.preventDefault();
+      sortByScore = !sortByScore;
+      try { localStorage.setItem('flip7_sort_by_score', sortByScore ? '1' : '0'); } catch (_) {}
+      render();
+    });
     document.getElementById('themeBtn').addEventListener('pointerup', (e) => {
       e.preventDefault();
       playTheme();
     });
+    document.getElementById('recapBtn').addEventListener('pointerup', (e) => {
+      e.preventDefault();
+      openRecap();
+    });
+    document.getElementById('recapClose').addEventListener('pointerup', (e) => {
+      e.preventDefault();
+      closeRecap();
+    });
+    document.getElementById('recapLock').addEventListener('pointerup', (e) => {
+      e.preventDefault();
+      endRound();
+    });
+    document.getElementById('recapOverlay').addEventListener('pointerup', (e) => {
+      if (e.target.id === 'recapOverlay') closeRecap();
+    });
 
     buildPad();
-    loadScores();
-    try { sortByScore = localStorage.getItem('flip7_sort_by_score') === '1'; } catch (_) {}
+    loadAll();
     saveScores();
+    saveMeta();
+    updateHint();
     render();
   </script>
 </body>
