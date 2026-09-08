@@ -90,7 +90,7 @@
     .player.selected { background: rgba(255, 255, 255, 0.08); }
 
     .player-name {
-      font-size: clamp(9px, 2.6vw, 13px);
+      font-size: clamp(8px, 2.2vw, 11px);
       font-weight: 500;
       text-align: center;
       line-height: 1.15;
@@ -300,19 +300,19 @@
 
   <script>
     // Bump key to force everyone's phone back to the starting scores once.
-    const STORAGE_KEY = 'flip7_scores_v2';
+    const STORAGE_KEY = 'flip7_scores_v3';
 
     const PLAYERS = [
-      { name: 'Bonk',       color: '#39FF14', score: 28 },
-      { name: 'burgdawg',   color: '#FF9500', score: 0  },
-      { name: 'Scooby',     color: '#FF3B30', score: 32 },
-      { name: 'Dimbo',      color: '#5AC8FA', score: 36 },
-      { name: 'Ding Dong',  color: '#FFCC00', score: 35 },
-      { name: 'buckle',     color: '#FF2D92', score: 0  },
-      { name: 'shack',      color: '#30D158', score: 36 },
-      { name: 'bean shack', color: '#BF5AF2', score: 0  },
-      { name: 'Big dog',    color: '#FF6482', score: 56 },
-      { name: 'flush',      color: '#5856D6', score: 0  },
+      { name: 'Bonk (D-LAW)',       color: '#39FF14', score: 70 },
+      { name: 'burgdawg (JAY)',     color: '#FF9500', score: 0  },
+      { name: 'Scooby (BECCA)',     color: '#FF3B30', score: 32 },
+      { name: 'Dimbo (KA)',         color: '#5AC8FA', score: 36 },
+      { name: 'Ding Dong (JBRUH)',  color: '#FFCC00', score: 63 },
+      { name: 'buckle (KISSA)',     color: '#FF2D92', score: 0  },
+      { name: 'shack (CHAY)',       color: '#30D158', score: 36 },
+      { name: 'bean shack (JACOB)', color: '#BF5AF2', score: 0  },
+      { name: 'Big dog (TOBY)',     color: '#FF6482', score: 85 },
+      { name: 'flush (TREY)',       color: '#5856D6', score: 21 },
     ];
 
     const DEFAULT_SCORES = PLAYERS.map(p => p.score);
