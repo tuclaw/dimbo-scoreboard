@@ -54,6 +54,21 @@
     }
 
     .icon-btn:active { background: #2c2c2e; }
+
+    .sort-btn {
+      border: none;
+      background: #1c1c1e;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 14px;
+      border-radius: 20px;
+      cursor: pointer;
+      letter-spacing: -0.01em;
+    }
+
+    .sort-btn:active { background: #2c2c2e; }
+    .sort-btn.on-score { background: #2c2c2e; color: #34c759; }
     .icon-btn svg {
       width: 20px; height: 20px;
       stroke: currentColor; fill: none; stroke-width: 1.75;
@@ -234,9 +249,7 @@
 </head>
 <body>
   <header class="header">
-    <button class="icon-btn" id="listBtn" aria-label="Close pad" type="button">
-      <svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
-    </button>
+    <button class="sort-btn" id="sortBtn" type="button" aria-label="Toggle sort order">High score</button>
     <button class="icon-btn" id="settingsBtn" aria-label="Settings" type="button">
       <svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
@@ -288,6 +301,7 @@
     let scores = [...DEFAULT_SCORES];
     let selectedIndex = null;
     let padValue = '';
+    let sortByScore = false;
 
     function loadScores() {
       try {
@@ -347,12 +361,36 @@
       render();
     }
 
+    function orderedIndexes() {
+      const idxs = PLAYERS.map((_, i) => i);
+      if (!sortByScore) return idxs;
+      return idxs.sort((a, b) => {
+        if (scores[b] !== scores[a]) return scores[b] - scores[a];
+        return a - b; // stable tie-break: roster order
+      });
+    }
+
+    function updateSortButton() {
+      const btn = document.getElementById('sortBtn');
+      if (sortByScore) {
+        btn.textContent = 'Roster order';
+        btn.classList.add('on-score');
+        btn.setAttribute('aria-label', 'Switch to roster order');
+      } else {
+        btn.textContent = 'High score';
+        btn.classList.remove('on-score');
+        btn.setAttribute('aria-label', 'Sort by high score');
+      }
+    }
+
     function render() {
       const board = document.getElementById('board');
       board.innerHTML = '';
       const max = 200;
+      updateSortButton();
 
-      PLAYERS.forEach((p, index) => {
+      orderedIndexes().forEach((index) => {
+        const p = PLAYERS[index];
         const pct = Math.min(100, Math.max(0, (scores[index] / max) * 100));
         const row = document.createElement('button');
         row.type = 'button';
@@ -432,13 +470,16 @@
       resetScores();
     });
 
-    document.getElementById('listBtn').addEventListener('pointerup', (e) => {
+    document.getElementById('sortBtn').addEventListener('pointerup', (e) => {
       e.preventDefault();
-      closePad();
+      sortByScore = !sortByScore;
+      try { localStorage.setItem('flip7_sort_by_score', sortByScore ? '1' : '0'); } catch (_) {}
+      render();
     });
 
     buildPad();
     loadScores();
+    try { sortByScore = localStorage.getItem('flip7_sort_by_score') === '1'; } catch (_) {}
     saveScores();
     render();
   </script>
