@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Score Anything">
+  <meta name="theme-color" content="#000000">
+  <title>Score Anything</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: #000;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      overflow: hidden;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      padding:
+        env(safe-area-inset-top)
+        env(safe-area-inset-right)
+        env(safe-area-inset-bottom)
+        env(safe-area-inset-left);
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px 4px;
+      flex-shrink: 0;
+    }
+
+    .icon-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: none;
+      background: #1c1c1e;
+      color: #8e8e93;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .icon-btn:active { background: #2c2c2e; }
+    .icon-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* Main layout */
+    .board {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      padding: 0 8px;
+    }
+
+    .player-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 4px;
+      flex-shrink: 0;
+      padding: 4px 0;
+    }
+
+    .player-row.top { padding-bottom: 8px; }
+    .player-row.bottom { padding-top: 8px; }
+
+    .player {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 6px 2px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+      min-width: 0;
+    }
+
+    .player:active { opacity: 0.7; }
+
+    .player.selected {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .player-name {
+      font-size: clamp(9px, 2.6vw, 13px);
+      font-weight: 500;
+      text-align: center;
+      line-height: 1.15;
+      white-space: normal;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      max-width: 100%;
+      min-height: 2.3em;
+      letter-spacing: -0.01em;
+    }
+
+    .player-score {
+      font-size: clamp(28px, 9vw, 52px);
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      font-variant-numeric: tabular-nums;
+      -webkit-text-stroke: 1.5px currentColor;
+      paint-order: stroke fill;
+    }
+
+    /* Ring */
+    .ring-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 0;
+      position: relative;
+    }
+
+    .ring-svg {
+      width: min(72vw, 320px);
+      height: min(72vw, 320px);
+      max-height: 100%;
+    }
+
+    .ring-track {
+      fill: none;
+      stroke: #1f1f1f;
+      stroke-width: 28;
+    }
+
+    .ring-dot {
+      cursor: pointer;
+      transition: transform 0.15s, filter 0.15s;
+    }
+
+    .ring-dot:active { opacity: 0.75; }
+
+    .ring-dot.selected {
+      filter: drop-shadow(0 0 6px currentColor);
+    }
+
+    .ring-dot-hit {
+      fill: transparent;
+      cursor: pointer;
+    }
+
+    /* Controls */
+    .controls {
+      flex-shrink: 0;
+      padding: 12px 20px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      min-height: 100px;
+    }
+
+    .controls-label {
+      font-size: 13px;
+      color: #636366;
+      text-align: center;
+      min-height: 18px;
+    }
+
+    .controls-label .highlight {
+      font-weight: 600;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .score-btn {
+      width: 72px;
+      height: 56px;
+      border-radius: 14px;
+      border: 2px solid #3a3a3c;
+      background: #1c1c1e;
+      color: #fff;
+      font-size: 28px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .score-btn:active {
+      background: #2c2c2e;
+      transform: scale(0.96);
+    }
+
+    .score-btn:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+
+    .score-btn.plus { border-color: #34c759; color: #34c759; }
+    .score-btn.minus { border-color: #ff453a; color: #ff453a; }
+
+    /* Reset dialog */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .overlay.open { display: flex; }
+
+    .dialog {
+      background: #1c1c1e;
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 300px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .dialog h2 {
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .dialog p {
+      font-size: 14px;
+      color: #8e8e93;
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
+
+    .dialog-btns {
+      display: flex;
+      gap: 12px;
+    }
+
+    .dialog-btns button {
+      flex: 1;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .dialog-cancel { background: #3a3a3c; color: #fff; }
+    .dialog-confirm { background: #ff453a; color: #fff; }
+
+    @media (max-height: 640px) {
+      .player-score { font-size: clamp(22px, 8vw, 40px); }
+      .controls { min-height: 88px; padding-bottom: 10px; }
+      .score-btn { width: 64px; height: 48px; font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <button class="icon-btn" id="listBtn" aria-label="Players" type="button">
+      <svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+    </button>
+    <button class="icon-btn" id="settingsBtn" aria-label="Settings" type="button">
+      <svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </header>
+
+  <main class="board">
+    <div class="player-row top" id="topRow"></div>
+
+    <div class="ring-wrap">
+      <svg class="ring-svg" id="ringSvg" viewBox="0 0 200 200" aria-hidden="true">
+        <circle class="ring-track" cx="100" cy="100" r="72"/>
+        <g id="ringDots"></g>
+      </svg>
+    </div>
+
+    <div class="player-row bottom" id="bottomRow"></div>
+  </main>
+
+  <footer class="controls">
+    <div class="controls-label" id="controlsLabel">Tap a player to adjust score</div>
+    <div class="btn-row">
+      <button class="score-btn minus" id="minusBtn" disabled type="button" aria-label="Subtract one point">−</button>
+      <button class="score-btn plus" id="plusBtn" disabled type="button" aria-label="Add one point">+</button>
+    </div>
+  </footer>
+
+  <div class="overlay" id="resetOverlay" role="dialog" aria-modal="true" aria-labelledby="resetTitle">
+    <div class="dialog">
+      <h2 id="resetTitle">Reset scores?</h2>
+      <p>All scores will return to their starting values. Player order stays the same.</p>
+      <div class="dialog-btns">
+        <button class="dialog-cancel" id="resetCancel" type="button">Cancel</button>
+        <button class="dialog-confirm" id="resetConfirm" type="button">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'scoreAnything_v1';
+
+    const PLAYERS = [
+      { name: 'Bonk',       color: '#39FF14', score: 28 },
+      { name: 'burgdawg',   color: '#FF9500', score: 0  },
+      { name: 'Scooby',     color: '#FF3B30', score: 32 },
+      { name: 'Dimbo',      color: '#5AC8FA', score: 36 },
+      { name: 'Ding Dong',  color: '#FFCC00', score: 35 },
+      { name: 'buckle',     color: '#FF2D92', score: 0  },
+      { name: 'shack',      color: '#30D158', score: 36 },
+      { name: 'bean shack', color: '#BF5AF2', score: 0  },
+      { name: 'Big dog',    color: '#FF6482', score: 56 },
+      { name: 'flush',      color: '#5856D6', score: 0  },
+    ];
+
+    const DEFAULT_SCORES = PLAYERS.map(p => p.score);
+
+    let scores = [...DEFAULT_SCORES];
+    let selectedIndex = null;
+
+    function loadScores() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        if (Array.isArray(data.scores) && data.scores.length === PLAYERS.length) {
+          scores = data.scores.map(n => (typeof n === 'number' && !isNaN(n) ? n : 0));
+        }
+      } catch (_) { /* ignore */ }
+    }
+
+    function saveScores() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ scores }));
+    }
+
+    function selectPlayer(index) {
+      selectedIndex = index;
+      render();
+    }
+
+    function adjustScore(delta) {
+      if (selectedIndex === null) return;
+      scores[selectedIndex] = Math.max(0, scores[selectedIndex] + delta);
+      saveScores();
+      render();
+    }
+
+    function resetScores() {
+      scores = [...DEFAULT_SCORES];
+      selectedIndex = null;
+      saveScores();
+      render();
+    }
+
+    function createPlayerEl(index) {
+      const p = PLAYERS[index];
+      const el = document.createElement('div');
+      el.className = 'player' + (selectedIndex === index ? ' selected' : '');
+      el.dataset.index = index;
+      el.innerHTML =
+        '<span class="player-name" style="color:' + p.color + '">' + escapeHtml(p.name) + '</span>' +
+        '<span class="player-score" style="color:' + p.color + '">' + scores[index] + '</span>';
+      el.addEventListener('click', () => selectPlayer(index));
+      return el;
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function renderRing() {
+      const g = document.getElementById('ringDots');
+      g.innerHTML = '';
+      const cx = 100, cy = 100, r = 72;
+      const dotR = 9;
+      const hitR = 18;
+
+      PLAYERS.forEach((p, i) => {
+        const angle = (-Math.PI / 2) + (i * 2 * Math.PI / PLAYERS.length);
+        const x = cx + r * Math.cos(angle);
+        const y = cy + r * Math.sin(angle);
+
+        const hit = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        hit.setAttribute('class', 'ring-dot-hit');
+        hit.setAttribute('cx', x);
+        hit.setAttribute('cy', y);
+        hit.setAttribute('r', hitR);
+        hit.addEventListener('click', () => selectPlayer(i));
+
+        const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        dot.setAttribute('class', 'ring-dot' + (selectedIndex === i ? ' selected' : ''));
+        dot.setAttribute('cx', x);
+        dot.setAttribute('cy', y);
+        dot.setAttribute('r', dotR);
+        dot.setAttribute('fill', p.color);
+        if (selectedIndex === i) {
+          dot.setAttribute('stroke', '#fff');
+          dot.setAttribute('stroke-width', '2');
+        }
+
+        g.appendChild(hit);
+        g.appendChild(dot);
+      });
+    }
+
+    function render() {
+      const topRow = document.getElementById('topRow');
+      const bottomRow = document.getElementById('bottomRow');
+      topRow.innerHTML = '';
+      bottomRow.innerHTML = '';
+
+      for (let i = 0; i < 5; i++) topRow.appendChild(createPlayerEl(i));
+      for (let i = 5; i < 10; i++) bottomRow.appendChild(createPlayerEl(i));
+
+      renderRing();
+
+      const hasSelection = selectedIndex !== null;
+      document.getElementById('minusBtn').disabled = !hasSelection;
+      document.getElementById('plusBtn').disabled = !hasSelection;
+
+      const label = document.getElementById('controlsLabel');
+      if (hasSelection) {
+        const p = PLAYERS[selectedIndex];
+        label.innerHTML = 'Adjusting <span class="highlight" style="color:' + p.color + '">' + escapeHtml(p.name) + '</span>';
+      } else {
+        label.textContent = 'Tap a player to adjust score';
+      }
+    }
+
+    document.getElementById('plusBtn').addEventListener('click', () => adjustScore(1));
+    document.getElementById('minusBtn').addEventListener('click', () => adjustScore(-1));
+
+    document.getElementById('settingsBtn').addEventListener('click', () => {
+      document.getElementById('resetOverlay').classList.add('open');
+    });
+
+    document.getElementById('resetCancel').addEventListener('click', () => {
+      document.getElementById('resetOverlay').classList.remove('open');
+    });
+
+    document.getElementById('resetConfirm').addEventListener('click', () => {
+      document.getElementById('resetOverlay').classList.remove('open');
+      resetScores();
+    });
+
+    document.getElementById('resetOverlay').addEventListener('click', (e) => {
+      if (e.target.id === 'resetOverlay') {
+        document.getElementById('resetOverlay').classList.remove('open');
+      }
+    });
+
+    document.getElementById('listBtn').addEventListener('click', () => {
+      selectedIndex = null;
+      render();
+    });
+
+    loadScores();
+    render();
+  </script>
+</body>
+</html>
