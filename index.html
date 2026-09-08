@@ -17,6 +17,7 @@
       color: #fff;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
       -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
       user-select: none;
       overflow: hidden;
     }
@@ -300,7 +301,7 @@
   </main>
 
   <footer class="controls">
-    <div class="controls-label" id="controlsLabel">Tap a player to adjust score</div>
+    <div class="controls-label" id="controlsLabel">Tap a name or color to +1</div>
     <div class="btn-row">
       <button class="score-btn minus" id="minusBtn" disabled type="button" aria-label="Subtract one point">−</button>
       <button class="score-btn plus" id="plusBtn" disabled type="button" aria-label="Add one point">+</button>
@@ -354,16 +355,16 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ scores }));
     }
 
-    function selectPlayer(index) {
+    function bumpScore(index, delta) {
       selectedIndex = index;
+      scores[index] = Math.max(0, scores[index] + delta);
+      saveScores();
       render();
     }
 
-    function adjustScore(delta) {
+    function adjustSelected(delta) {
       if (selectedIndex === null) return;
-      scores[selectedIndex] = Math.max(0, scores[selectedIndex] + delta);
-      saveScores();
-      render();
+      bumpScore(selectedIndex, delta);
     }
 
     function resetScores() {
@@ -381,7 +382,7 @@
       el.innerHTML =
         '<span class="player-name" style="color:' + p.color + '">' + escapeHtml(p.name) + '</span>' +
         '<span class="player-score" style="color:' + p.color + '">' + scores[index] + '</span>';
-      el.addEventListener('click', () => selectPlayer(index));
+      el.addEventListener('pointerup', (e) => { e.preventDefault(); bumpScore(index, 1); });
       return el;
     }
 
@@ -393,8 +394,8 @@
       const g = document.getElementById('ringDots');
       g.innerHTML = '';
       const cx = 100, cy = 100, r = 72;
-      const dotR = 9;
-      const hitR = 18;
+      const dotR = 11;
+      const hitR = 24;
 
       PLAYERS.forEach((p, i) => {
         const angle = (-Math.PI / 2) + (i * 2 * Math.PI / PLAYERS.length);
@@ -406,7 +407,7 @@
         hit.setAttribute('cx', x);
         hit.setAttribute('cy', y);
         hit.setAttribute('r', hitR);
-        hit.addEventListener('click', () => selectPlayer(i));
+        hit.addEventListener('pointerup', (e) => { e.preventDefault(); bumpScore(i, 1); });
 
         const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         dot.setAttribute('class', 'ring-dot' + (selectedIndex === i ? ' selected' : ''));
@@ -442,14 +443,14 @@
       const label = document.getElementById('controlsLabel');
       if (hasSelection) {
         const p = PLAYERS[selectedIndex];
-        label.innerHTML = 'Adjusting <span class="highlight" style="color:' + p.color + '">' + escapeHtml(p.name) + '</span>';
+        label.innerHTML = 'Last: <span class="highlight" style="color:' + p.color + '">' + escapeHtml(p.name) + '</span> — use − to undo';
       } else {
-        label.textContent = 'Tap a player to adjust score';
+        label.textContent = 'Tap a name or color to +1';
       }
     }
 
-    document.getElementById('plusBtn').addEventListener('click', () => adjustScore(1));
-    document.getElementById('minusBtn').addEventListener('click', () => adjustScore(-1));
+    document.getElementById('plusBtn').addEventListener('pointerup', (e) => { e.preventDefault(); adjustSelected(1); });
+    document.getElementById('minusBtn').addEventListener('pointerup', (e) => { e.preventDefault(); adjustSelected(-1); });
 
     document.getElementById('settingsBtn').addEventListener('click', () => {
       document.getElementById('resetOverlay').classList.add('open');
